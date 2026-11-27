@@ -401,38 +401,30 @@ def lerp_rect(a, b, k):
     return [a[i] + (b[i] - a[i]) * k for i in range(4)]
 
 def camera(t):
+    """Una sola toma con los dos personajes; solo se mueve suave (sin cortes)."""
     if t < 1.0:
         return None
+    two = lambda w, f: rect_at(1080, 2400, w, f)
+    base = two(1700, 0.50)
     if t < 4.0:
         start = [1080 - 750, 0, 1500, 1500 * 16 / 9]
-        return lerp_rect(start, WIDE(), ease((t - 1.0) / 2.8))
-    for (t0, t1, who, txt, st, s1, real) in LINES:
-        if 13.0 <= t0 < 23.0 and t0 <= t < t1:
-            k = ease((t - t0) / 0.25)
-            return CG(1100 - 80 * k) if who == "G" else CC(1100 - 110 * k)
-    if t < 7.0:  return CG(1060)
-    if t < 9.0:  return lerp_rect(TWO(), WIDE(), ease((t - 7.0) / 2.0))
-    if t < 11.5: return CG(1060 - 60 * ease((t - 9.0) / 2.5))
-    if t < 13.0:
-        k = ease((t - 11.5) / 0.2)
-        return CC(1200 - 260 * k)
-    if t < 26.4: return lerp_rect(WIDE(), TWO(), ease((t - 23.0) / 3.4))
-    if t < 30.6: return lerp_rect(TWO(), rect_at(980, 2400, 1500, 0.36), ease((t - 26.4) / 4.0))
-    if t < 33.0: return lerp_rect(rect_at(980, 2400, 1500, 0.36), CC(1000), ease((t - 30.6) / 2.4))
+        return lerp_rect(start, base, ease((t - 1.0) / 2.8))
+    # respiración lenta de la cámara
+    drift = two(1700 - 60 * math.sin((t - 4.0) * 0.35), 0.50)
+    if t < 31.0:
+        return drift
+    rap = two(1560, 0.62)
+    if t < 33.0:
+        return lerp_rect(drift, rap, ease((t - 31.0) / 2.0))
     if t < 39.5:
         ph = beat_phase(t)
-        w = 1180 - 70 * (1 - ph) ** 3
-        r = CC(w, 0.68)
-        sx = math.sin(t * 53) * 14 + math.sin(t * 31) * 10
-        sy = math.cos(t * 47) * 12
-        return [r[0] + sx, r[1] + sy, r[2], r[3]]
-    if t < 46.3: return WIDE()
-    if t < 48.3: return CG(1000)
-    if t < 50.3:
-        r = CC(1000)
-        return [r[0] + math.sin(t * 40) * 8, r[1] + math.cos(t * 37) * 8, r[2], r[3]]
-    if t < 52.0: return TWO()
-    return lerp_rect(TWO(), WIDE(), ease((t - 52.0) / 6.0))
+        r = two(1560 - 30 * (1 - ph) ** 3, 0.62)
+        return [r[0] + math.sin(t * 9) * 4, r[1] + math.cos(t * 8) * 4, r[2], r[3]]
+    if t < 41.0:
+        return lerp_rect(rap, two(1700, 0.50), ease((t - 39.5) / 1.5))
+    if t < 52.0:
+        return drift
+    return lerp_rect(drift, two(1900, 0.44), ease((t - 52.0) / 6.0))
 
 # ------------------------------------------------------------------ globos de diálogo
 def tokens(text, big=False):
@@ -506,6 +498,8 @@ def draw_balloon(frame, t, t0, text, style, target, side, revealed=None, key=Non
     d = ImageDraw.Draw(frame)
     # cola del globo
     bx = min(max(tx, box[0] + 80), box[2] - 80)
+    if style == "shout":
+        bx = min(max(tx, cx - bw * 0.22), cx + bw * 0.22)
     tail = [(bx - 40 * s, box[3] - 20), (bx + 40 * s, box[3] - 20),
             (tx + (bx - tx) * 0.25, min(ty - 40, box[3] + 160))]
     o = 9
@@ -761,13 +755,13 @@ def main(preview=False):
             n = sum(1 for x in RAP_TIMES if x <= t)
             hx, hy, hr = heads["C"]
             draw_balloon(fr, t, RAP[0], " ".join(RAP_WORDS), "speech", (hx - 40, hy - hr * 1.0), "C",
-                         revealed=n, key="rap", maxw=860)
+                         revealed=n, key="rap", maxw=840)
             if t >= 37.3:
-                sfx(fr, "¡RAPIDITO!", W / 2, 1180, 150, t, 37.3, rot=-6)
+                sfx(fr, "¡RAPIDITO!", W / 2, 1330, 150, t, 37.3, rot=-6)
             for k, ti in enumerate(ITO_T):
                 if t >= ti:
                     rr = random.Random(k)
-                    sfx(fr, "¡ITO!", rr.uniform(220, 860), rr.uniform(1350, 1650), 120, t, ti,
+                    sfx(fr, "¡ITO!", rr.uniform(220, 860), rr.uniform(1470, 1640), 120, t, ti,
                         rot=rr.uniform(-18, 18), fill=[(255, 214, 0), (90, 220, 255), (255, 120, 200)][k % 3])
         if 50.9 <= t < 52.6:
             hxg = heads["G"][0]; hxc = heads["C"][0]
